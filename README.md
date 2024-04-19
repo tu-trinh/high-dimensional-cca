@@ -2,6 +2,14 @@
 
 Below are each of the datasets used in the Andreou paper. They appear (roughly) in row order for their respective tables.
 
+Important note: the below files were too big to be stored as a single dataframe, so they were split up into chunks. For example, `dev_100_1991_1.csv`, `dev_100_1991_2.csv`, etc. Make sure to concatenate all the chunks when using the data.
+- dev_100_1991
+- dev_exUS_100_1991
+- euro_100_1991
+- jap_100_1991
+- na_100_2008
+- na_100_1991
+
 
 ## Table 3 Datasets
 | Official Dataset Name(s) | Name in Files | Abbreviation in Paper | Large or Small Panel | Years | Source |
