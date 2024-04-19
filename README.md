@@ -18,8 +18,8 @@ Below are each of the datasets used in the Andreou paper. They appear (roughly) 
 | 5 Industry Portfolios | us_5_1964 | 5 US Industry Port. | Small | 1964 - 2019 | Kenneth French |
 | 10 Industry Portfolios | us_10_2008 | 10 US Industry Port. | Small | 2008 - 2019 | Kenneth French |
 | 10 Industry Portfolios | us_10_1964 | 10 US Industry Port. | Small | 1964 - 2019 | Kenneth French |
-| N/A | mag_7 | 7 US companies | Small | 2013 - 2019 | NASDAQ |
-| N/A | mag_5 | 5 US companies | Small | 2008 - 2019 | NASDAQ |
+| N/A | N/A | 7 US companies | Small | 2013 - 2019 | NASDAQ |
+| N/A | N/A | 5 US companies | Small | 2008 - 2019 | NASDAQ |
 
 
 ## Table 4 Datasets
@@ -35,8 +35,8 @@ Below are each of the datasets used in the Andreou paper. They appear (roughly) 
 | 5 Industry Portfolios | us_5_1991 | 5 US Industry Port. | Small | 1991 - 2019 | Kenneth French |
 | 10 Industry Portfolios | us_10_2008 | 10 US Industry Port. | Small | 2008 - 2019 | Kenneth French |
 | 10 Industry Portfolios | us_10_1991 | 10 US Industry Port. | Small | 1991 - 2019 | Kenneth French |
-| N/A | mag_7 | 7 US companies | Small | 2013 - 2019 | NASDAQ |
-| N/A | mag_5 | 5 US companies | Small | 2008 - 2019 | NASDAQ |
+| N/A | N/A | 7 US companies | Small | 2013 - 2019 | NASDAQ |
+| N/A | N/A | 5 US companies | Small | 2008 - 2019 | NASDAQ |
 
 
 ## Table 5 Datasets
