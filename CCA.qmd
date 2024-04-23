@@ -130,7 +130,7 @@ first_n_years_correlations <- function(n){
 }
 Correlations <- c()
 for (i in 9:56){
-  Correlations <- cbind(Correlations,first_n_years_correlations(i))
+  Correlations <- cbind(Correlations,first_n_years_correlations(i)^2)
 }
 Correlations <- as.data.frame(t(Correlations))
 rho <- first_n_years_correlations(56)[1]
