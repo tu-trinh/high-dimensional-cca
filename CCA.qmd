@@ -1,0 +1,155 @@
+---
+title: "High dimensional CCA"
+format: html
+editor: visual
+---
+
+## Andreou's Experiments
+
+Recreate tables in Section 7
+
+## Table 3
+
+### Loading data
+
+```{r}
+# load data
+us_100_2008 = read.csv("/Users/zmx/Downloads/high-dimensional-cca-main/clean_data/us_100_2008.csv")
+us_ff3_2008 = read.csv("/Users/zmx/Downloads/high-dimensional-cca-main/clean_data/us_ff3_2008.csv")
+us_ff5_2008 = read.csv("/Users/zmx/Downloads/high-dimensional-cca-main/clean_data/us_ff5_2008.csv")
+us_100_1964 = read.csv("/Users/zmx/Downloads/high-dimensional-cca-main/clean_data/us_100_1964.csv")
+us_ff3_1964 = read.csv("/Users/zmx/Downloads/high-dimensional-cca-main/clean_data/us_ff3_1964.csv")
+us_ff5_1964 = read.csv("/Users/zmx/Downloads/high-dimensional-cca-main/clean_data/us_ff5_1964.csv")
+us_ff5_mom_2008 = read.csv("/Users/zmx/Downloads/high-dimensional-cca-main/clean_data/us_ff5_mom_2008.csv")
+```
+
+### pre-processing
+
+```{r}
+us_100_2008_numeric <- us_100_2008[1:144,2:101]
+us_100_2008_numeric[us_100_2008_numeric== -99.99] <-  0
+
+us_ff3_2008$Mrkt_minus_RF <- us_ff3_2008[,2] - us_ff3_2008[,5]*0
+us_ff3_2008_data <- us_ff3_2008[,c(8,3,4)]
+
+us_ff5_2008$Mrkt_minus_RF <- us_ff5_2008[,2] - us_ff5_2008[,7]*0
+us_ff5_2008_data <- us_ff5_2008[,c(10,3,4,5,6)]
+
+us_100_1964_numeric <- us_100_1964[1:672,2:101]
+us_100_1964_numeric[us_100_1964_numeric== -99.99] <- 0
+
+us_ff3_1964$Mrkt_minus_RF <- us_ff3_1964[,2] - us_ff3_1964[,5]*0
+us_ff3_1964_data <- us_ff3_1964[,c(8,3,4)]
+
+us_ff5_1964$Mrkt_minus_RF <- us_ff5_1964[,2] - us_ff5_1964[,7]*0
+us_ff5_1964_data <- us_ff5_1964[,c(10,3,4,5,6)]
+
+us_ff5_mom_2008$Mrkt_minus_RF <- us_ff5_mom_2008[,3] - us_ff5_mom_2008[,8]*0
+us_ff5_mom_2008_data <- us_ff5_mom_2008[,c(12,4,5,6,7,11)]
+
+```
+
+```{r}
+PCA <- function(large_panel_data, small_panel_data,k){
+  pca_result <- prcomp(large_panel_data, center = TRUE, scale. = TRUE)
+  first_k_principal_components <- pca_result$x[, 1:k]
+  cor(first_k_principal_components,small_panel_data)
+}
+
+CCA <- function(large_panel_data, small_panel_data,k){
+  cca_results_cca <- cancor(large_panel_data, small_panel_data)
+  rho <- cca_results_cca$cor[1:k]
+  cc_xvector <- as.matrix(large_panel_data) %*% cca_results_cca$xcoef
+  cc_xvector <- cc_xvector[,1:k]
+  cor(cc_xvector,small_panel_data)
+}
+
+Andreou <- function(large_panel_data, small_panel_data,k){
+  large_pca_result <- prcomp(large_panel_data, center = TRUE, scale. = TRUE)
+  large_first_k_principal_components <- large_pca_result$x[, 1:6]
+  small_pca_result <- prcomp(small_panel_data, center = TRUE, scale. = TRUE)
+  small_first_k_principal_components <- small_pca_result$x[, ]
+  cca_results_cca <- cancor(large_first_k_principal_components,
+                            small_first_k_principal_components)
+  rho <- cca_results_cca$cor[1:k]
+  cc_xvector <- large_first_k_principal_components %*% cca_results_cca$xcoef
+  cc_yvector <- small_first_k_principal_components %*% cca_results_cca$ycoef
+  cc_xvector <- cc_yvector[,1:k]
+  cc_yvector <- cc_yvector[,1:k]
+  CFs <- (cc_xvector+cc_yvector) %*% sqrtm(solve(2*(diag(rep(1,k))+diag(rho))))
+  return(cor(cc_xvector,small_panel_data))
+}
+# Results
+Results <- function(large_panel_data, small_panel_data,k){
+  results <- list(PCA = PCA(large_panel_data, small_panel_data,k)|>round(2),
+                  CCA = CCA(large_panel_data, small_panel_data,k)|>round(2),
+                  Andreou = Andreou(large_panel_data, small_panel_data,k)|>round(2))
+  return(results)
+}
+```
+
+```{r}
+print("row 1")
+Results(us_100_2008_numeric,us_ff3_2008_data,2)$Andreou
+print("row 2")
+Results(us_100_2008_numeric,us_ff5_2008_data,3)$Andreou
+print("row 3")
+Results(us_100_2008_numeric,us_ff5_mom_2008_data,3)$Andreou
+```
+
+## Gorin
+
+```{r}
+CCA_Gorin <- function(large_panel_data, small_panel_data,k){
+  large_pca_result <- prcomp(large_panel_data, center = TRUE, scale. = TRUE)
+  large_first_k_principal_components <- large_pca_result$x[, ]
+  small_pca_result <- prcomp(small_panel_data, center = TRUE, scale. = TRUE)
+  small_first_k_principal_components <- small_pca_result$x[, ]
+  cca_results_cca <- cancor(large_first_k_principal_components,
+                            small_first_k_principal_components)
+  rho <- cca_results_cca$cor[1:k]
+  return(rho)
+}
+```
+
+```{r}
+lambda_plus <- function(tau_k){
+  return(1 / tau_k)
+}
+z_rho <- function(tau_k,rho){
+  return((1 + (tau_k - 1) * rho^2) / (tau_k))
+}
+```
+
+```{r}
+library(ggplot2)
+first_n_years_correlations <- function(n){
+  data1 <- us_100_1964_numeric[1:(12*n),]
+  data2 <- us_ff3_1964_data[1:(12*n),]
+  return(CCA_Gorin(data1,data2,3))
+}
+Correlations <- c()
+for (i in 9:56){
+  Correlations <- cbind(Correlations,first_n_years_correlations(i))
+}
+Correlations <- as.data.frame(t(Correlations))
+rho <- first_n_years_correlations(56)[1]
+Lambda_plus <- lambda_plus(9:56*12/100)
+Z_rho <- z_rho(9:56*12/100,rho)
+
+ggplot(data = Correlations) +
+  geom_line(aes(x = 9:56, y = V1, color = "lambda_1")) +
+  geom_line(aes(x = 9:56, y = V2, color = "lambda_2")) +
+  geom_line(aes(x = 9:56, y = V3, color = "lambda_3")) +
+  geom_line(aes(x = 9:56, y = Z_rho, color = "black", linetype = "z_rho")) +
+  scale_linetype_manual(values = c("z_rho" = "dashed")) +
+  scale_color_manual(values = c("lambda_1" = "red", "lambda_2" = "green", "lambda_3" = "blue")) + 
+  labs(
+    x = "First x years",
+    y = "Correlation",
+    title = "The three largest canonical correlations",
+    subtitle = "Black dashed line comes from z_rho in Gorin's paper (lambda_1 should be close to z_rho)",
+    color = "Correlations",
+    linetype = "" 
+  )
+```
