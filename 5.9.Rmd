@@ -1,0 +1,410 @@
+---
+title: "5.9"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+# Define the function we need for the project.
+dmp <- function(x, gamma) {
+  gamma <- 1/gamma
+  lambda_min <- (1 - sqrt(gamma))^2
+  lambda_max <- (1 + sqrt(gamma))^2
+  condition <- (x >= lambda_max) | (x <= lambda_min)
+  density <- ifelse(condition, 0, sqrt((lambda_max - x) * (x - lambda_min)) / (2 * pi * gamma * x) )
+  return(density)
+  }
+
+dwachter <- function(x, tau_k, tau_m) {
+  
+  lambda_min <- lambda_minus(tau_k, tau_m)
+  lambda_max <- lambda_plus(tau_k, tau_m)
+  condition <- (x >= lambda_max) | (x <= lambda_min)
+  density <- ifelse(condition, 0, tau_k*sqrt((lambda_max - x) * (x - lambda_min)) /(2 * pi * (1-x) * x) )
+  return(density)
+}
+
+lambda_plus <- function(tau_M, tau_K) {
+  lambda_plu <- (sqrt(1/tau_M * (1 - 1/tau_K)) + sqrt(1/tau_K * (1 - 1/tau_M)))^2
+  return(lambda_plu)
+}
+
+lambda_minus <- function(tau_M, tau_K) {
+  lambda_minu <- (sqrt(1/tau_M * (1 - 1/tau_K)) - sqrt(1/tau_K * (1 - 1/tau_M)))^2
+  return(lambda_minu)
+}
+
+detect_cutoff <- function(tau_M, tau_K) {
+  cut_of <- 1/(sqrt((tau_M-1) * (tau_K- 1)))
+  return(cut_of)
+}
+
+
+```
+
+
+Load the data in the following
+```{r}
+us_indus_10_2008 = read.csv("clean_data/monthly/us_10_2008.csv")
+
+us_indus_10_2008_numeric <- us_indus_10_2008[1:144,2:11]
+
+us_indus_10_1964 = read.csv("clean_data/monthly/us_10_1964.csv")
+
+us_indus_10_1964_numeric <- us_indus_10_1964[1:672,2:11]
+
+us_indus_5_2008 = read.csv("clean_data/monthly/us_5_2008.csv")
+
+us_indus_5_2008_numeric <- us_indus_5_2008[1:144,2:6]
+```
+
+
+PCA result for the large panel data
+```{r}
+large_pca_result <- prcomp(us_100_1964_numeric, center = TRUE, scale. = TRUE)
+large_pca_result$sdev
+
+x_values <- seq(0, 5, length.out = 500)
+
+# Compute y values for Wachter distribution
+y_values <- dmp(x_values, 672/100)
+
+lambda_max <- (1 + sqrt(100/672))^2
+lambda_max
+  hist(large_pca_result$sdev^2, breaks = 50, freq = FALSE, main = "PCA eigenvalue of large panel data with Marchenko–Pastur Dist",
+     xlab = "Eigenvalue", ylab = "Density")
+
+# Add curve of Marchenko-Pastur distribution
+lines(x_values, y_values, col = "red", lwd = 2)
+
+```
+```{r}
+
+```
+
+
+In particular the above suggests that there are two main components. 
+
+In the following we analyze CCA of large panel(US 100 portfolio) and small panel data (FF3). And give the scatter plot for the pair of canonical variates
+
+```{r}
+n = 12
+data1 <- us_100_2008_numeric[1:(12*n),]
+data2 <- us_ff3_2008_data[1:(12*n),]
+
+S <- 12*12
+Tau_k <- tau_k(S, 100)
+Tau_m <- tau_m(S, 3)
+z_rho(Tau_k, Tau_m, rho)
+
+detect_cutoff(Tau_k, Tau_m)
+lambda_plus(Tau_k, Tau_m)
+
+cca_result <-cancor(data1, data2)
+cca_cor <- cancor(data1, data2)$cor
+sq_Correlations <- cca_cor^2
+
+
+x_values <- seq(0, 2, length.out = 500)
+
+# Compute y values for Wachter distribution
+y_values <- dwachter(x_values, Tau_m, Tau_k)
+
+hist(sq_Correlations, breaks = 30, freq = FALSE, main = "Square corr with Wachter Distribution(100 US Port. vs. FF3, 2008-2019)",
+     xlab = "Eigenvalue", ylab = "Density")
+
+
+lines(x_values, y_values, col = "red", lwd = 2)
+
+k_c =3 
+
+x_variates <- as.matrix(data1) %*% cca_result$xcoef[,1:k_c]
+y_variates <- as.matrix(data2) %*% cca_result$ycoef[,1:k_c]
+
+data_cano_variates_1 = data.frame(
+  x_variates = x_variates[,1],
+  y_variates = y_variates[,1]
+)
+
+ggplot(data_cano_variates_1, aes(x = x_variates, y = y_variates)) +
+  geom_point() +
+  labs(title = "Scatter plot for first pair of canonical variates", x = "Large panel", y = "Small panel")
+
+cor(y_variates, data2)
+
+
+data_cano_variates_2 = data.frame(
+  x_variates = x_variates[,2],
+  y_variates = y_variates[,2]
+)
+
+ggplot(data_cano_variates_2, aes(x = x_variates, y = y_variates)) +
+  geom_point() +
+  labs(title = "Scatter plot for second pair of canonical variates", x = "Large panel", y = "Small panel")
+
+data_cano_variates_3 = data.frame(
+  x_variates = x_variates[,3],
+  y_variates = y_variates[,3]
+)
+
+ggplot(data_cano_variates_3, aes(x = x_variates, y = y_variates)) +
+  geom_point() +
+  labs(title = "Scatter plot for thrid pair of canonical variates", x = "Large panel", y = "Small panel")
+
+
+```
+
+```{r}
+
+n = 12
+data1 <- us_100_2008_numeric[1:(12*n),]
+data2 <- us_ff5_2008_data[1:(12*n),]
+
+S <- 12*12
+Tau_k <- tau_k(S, 100)
+Tau_m <- tau_m(S, 5)
+Z_rho <- z_rho(Tau_k, Tau_m, rho)
+
+detect_cutoff(Tau_k, Tau_m)
+lambda_plus(Tau_k, Tau_m)
+
+cca_cor <- cancor(data1, data2)$cor
+sq_Correlations <- cca_cor^2
+
+
+x_values <- seq(0, 1, length.out = 500)
+
+# Compute y values for Wachter distribution
+y_values <- dwachter(x_values, Tau_m, Tau_k)
+
+hist(sq_Correlations, breaks = 30, freq = FALSE, main = "Square correlation with Wachter Distribution (100 US Port. vs. FF5)",
+     xlab = "Eigenvalue", ylab = "Density")
+
+
+lines(x_values, y_values, col = "red", lwd = 2)
+
+
+```
+
+
+
+```{r}
+
+n = 12
+data1 <- us_100_2008_numeric[1:(12*n),]
+data2 <- us_ff5_mom_2008_data[1:(12*n),]
+
+S <- 12*12
+Tau_k <- tau_k(S, 100)
+Tau_m <- tau_m(S, 6)
+Z_rho <- z_rho(Tau_k, Tau_m, rho)
+
+detect_cutoff(Tau_k, Tau_m)
+lambda_plus(Tau_k, Tau_m)
+
+cca_result <- cancor(data1, data2)
+cca_cor <- cancor(data1, data2)$cor
+sq_Correlations <- cca_cor^2
+
+
+x_values <- seq(0, 1, length.out = 500)
+
+# Compute y values for Wachter distribution
+y_values <- dwachter(x_values, Tau_m, Tau_k)
+
+hist(sq_Correlations, breaks = 30, freq = FALSE, main = "Square correlation with Wachter Distribution (100 US Port. vs. FF5+Mom)",
+     xlab = "Eigenvalue", ylab = "Density")
+
+
+lines(x_values, y_values, col = "red", lwd = 2)
+
+
+
+k_c =3 
+
+x_variates <- as.matrix(data1) %*% cca_result$xcoef[,1:k_c]
+y_variates <- as.matrix(data2) %*% cca_result$ycoef[,1:k_c]
+
+data_cano_variates_1 = data.frame(
+  x_variates = x_variates[,1],
+  y_variates = y_variates[,1]
+)
+
+ggplot(data_cano_variates_1, aes(x = x_variates, y = y_variates)) +
+  geom_point() +
+  labs(title = "Scatter plot for first pair of canonical variates", x = "Large panel", y = "Small panel")
+
+cor(y_variates, data2)
+
+
+data_cano_variates_2 = data.frame(
+  x_variates = x_variates[,2],
+  y_variates = y_variates[,2]
+)
+
+ggplot(data_cano_variates_2, aes(x = x_variates, y = y_variates)) +
+  geom_point() +
+  labs(title = "Scatter plot for second pair of canonical variates", x = "Large panel", y = "Small panel")
+
+data_cano_variates_3 = data.frame(
+  x_variates = x_variates[,3],
+  y_variates = y_variates[,3]
+)
+
+ggplot(data_cano_variates_3, aes(x = x_variates, y = y_variates)) +
+  geom_point() +
+  labs(title = "Scatter plot for thrid pair of canonical variates", x = "Large panel", y = "Small panel")
+
+
+```
+
+
+```{r}
+
+
+n = 12
+data1 <- us_100_2008_numeric[1:(12*n),]
+data2 <- us_indus_5_2008_numeric[1:(12*n),]
+
+S <- 12*12
+Tau_k <- tau_k(S, 100)
+Tau_m <- tau_m(S, 5)
+Z_rho <- z_rho(Tau_k, Tau_m, rho)
+
+detect_cutoff(Tau_k, Tau_m)
+lambda_plus(Tau_k, Tau_m)
+
+cca_result <- cancor(data1, data2)
+cca_cor <- cca_result$cor
+sq_Correlations <- cca_cor^2
+
+
+x_values <- seq(0, 1, length.out = 500)
+
+# Compute y values for Wachter distribution
+y_values <- dwachter(x_values, Tau_m, Tau_k)
+
+hist(sq_Correlations, breaks = 30, freq = FALSE, main = "Square correlation with Wachter Distribution (100 US Port. vs. 5 Indu.)",
+     xlab = "Eigenvalue", ylab = "Density")
+
+
+lines(x_values, y_values, col = "red", lwd = 2)
+
+
+k_c =3 
+
+x_variates <- as.matrix(data1) %*% cca_result$xcoef[,1:k_c]
+y_variates <- as.matrix(data2) %*% cca_result$ycoef[,1:k_c]
+
+data_cano_variates_1 = data.frame(
+  x_variates = x_variates[,1],
+  y_variates = y_variates[,1]
+)
+
+ggplot(data_cano_variates_1, aes(x = x_variates, y = y_variates)) +
+  geom_point() +
+  labs(title = "Scatter plot for first pair of canonical variates", x = "Large panel", y = "Small panel")
+
+cor(y_variates, data2)
+
+
+data_cano_variates_2 = data.frame(
+  x_variates = x_variates[,2],
+  y_variates = y_variates[,2]
+)
+
+ggplot(data_cano_variates_2, aes(x = x_variates, y = y_variates)) +
+  geom_point() +
+  labs(title = "Scatter plot for second pair of canonical variates", x = "Large panel", y = "Small panel")
+
+data_cano_variates_3 = data.frame(
+  x_variates = x_variates[,3],
+  y_variates = y_variates[,3]
+)
+
+ggplot(data_cano_variates_3, aes(x = x_variates, y = y_variates)) +
+  geom_point() +
+  labs(title = "Scatter plot for thrid pair of canonical variates", x = "Large panel", y = "Small panel")
+
+```
+
+
+
+
+```{r}
+n = 12
+data1 <- us_100_2008_numeric[1:(12*n),]
+data2 <- us_indus_10_2008_numeric[1:(12*n),]
+
+
+S <- 12*12
+Tau_k <- tau_k(S, 100)
+Tau_m <- tau_m(S, 10)
+Z_rho <- z_rho(Tau_k, Tau_m, rho)
+
+detect_cutoff(Tau_k, Tau_m)
+lambda_plus(Tau_k, Tau_m)
+
+cca_result <-cancor(data1, data2)
+cca_cor <- cca_result$cor
+sq_Correlations <- cca_cor^2
+
+
+x_values <- seq(0, 1, length.out = 500)
+
+# Compute y values for Wachter distribution
+y_values <- dwachter(x_values, Tau_m, Tau_k)
+
+hist(sq_Correlations, breaks = 30, freq = FALSE, main = "Square corr with Wachter Distribution (100 US Port. vs. 10 Indu. 2008-2019)",
+     xlab = "Eigenvalue", ylab = "Density")
+
+
+lines(x_values, y_values, col = "red", lwd = 2)
+
+k_c =3 
+
+x_variates <- as.matrix(data1) %*% cca_result$xcoef[,1:k_c]
+y_variates <- as.matrix(data2) %*% cca_result$ycoef[,1:k_c]
+
+data_cano_variates_1 = data.frame(
+  x_variates = x_variates[,1],
+  y_variates = y_variates[,1]
+)
+
+ggplot(data_cano_variates_1, aes(x = x_variates, y = y_variates)) +
+  geom_point() +
+  labs(title = "Scatter plot for first pair of canonical variates", x = "Large panel", y = "Small panel")
+
+cor(y_variates, data2)
+
+
+data_cano_variates_2 = data.frame(
+  x_variates = x_variates[,2],
+  y_variates = y_variates[,2]
+)
+
+ggplot(data_cano_variates_2, aes(x = x_variates, y = y_variates)) +
+  geom_point() +
+  labs(title = "Scatter plot for second pair of canonical variates", x = "Large panel", y = "Small panel")
+
+data_cano_variates_3 = data.frame(
+  x_variates = x_variates[,3],
+  y_variates = y_variates[,3]
+)
+
+ggplot(data_cano_variates_3, aes(x = x_variates, y = y_variates)) +
+  geom_point() +
+  labs(title = "Scatter plot for thrid pair of canonical variates", x = "Large panel", y = "Small panel")
+
+```
+
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
