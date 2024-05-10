@@ -21,11 +21,16 @@ us_100_1964 = read.csv("/Users/zmx/Downloads/high-dimensional-cca-main/clean_dat
 us_ff3_1964 = read.csv("/Users/zmx/Downloads/high-dimensional-cca-main/clean_data/us_ff3_1964.csv")
 us_ff5_1964 = read.csv("/Users/zmx/Downloads/high-dimensional-cca-main/clean_data/us_ff5_1964.csv")
 us_ff5_mom_2008 = read.csv("/Users/zmx/Downloads/high-dimensional-cca-main/clean_data/us_ff5_mom_2008.csv")
+
+us_100_1964_daily = read.csv("/Users/zmx/Downloads/high-dimensional-cca-main-2/clean_data/daily/us_100_1964.csv")
+us_ff3_1964_daily = read.csv("/Users/zmx/Downloads/high-dimensional-cca-main-2/clean_data/daily/us_ff3_1964.csv")
 ```
 
 ### pre-processing
 
 ```{r}
+library(tidyverse)
+
 us_100_2008_numeric <- us_100_2008[1:144,2:101]
 us_100_2008_numeric[us_100_2008_numeric== -99.99] <-  0
 
@@ -47,6 +52,35 @@ us_ff5_1964_data <- us_ff5_1964[,c(10,3,4,5,6)]
 us_ff5_mom_2008$Mrkt_minus_RF <- us_ff5_mom_2008[,3] - us_ff5_mom_2008[,8]*0
 us_ff5_mom_2008_data <- us_ff5_mom_2008[,c(12,4,5,6,7,11)]
 
+
+us_100_1964_daily_numeric <- us_100_1964_daily[1:11833,2:101]
+
+
+us_ff3_1964_daily$Mrkt_minus_RF <- us_ff3_1964_daily[,2] - us_ff3_1964_daily[,5]*0
+us_ff3_1964_daily <- us_ff3_1964_daily %>% 
+  filter(Year + 0.01 * Month <= 1975.06 | Year + 0.01 * Month >= 1976.07) %>%
+  filter(Year + 0.01 * Month <= 1977.06 | Year + 0.01 * Month >= 1978.07) %>%
+  filter(Year + 0.01 * Month <= 1999.06 | Year + 0.01 * Month >= 2004.07) %>%
+  filter(Year + 0.01 * Month <= 2006.06 | Year + 0.01 * Month >= 2007.07) %>%
+  filter(Year + 0.01 * Month <= 2008.06 | Year + 0.01 * Month >= 2009.07) 
+us_ff3_1964_daily_data <- us_ff3_1964_daily[1:11833,c(9,3,4)]
+
+us_100_1964_cut <- us_100_1964 %>% 
+  filter(Year + 0.01 * Month <= 1975.06 | Year + 0.01 * Month >= 1976.07) %>%
+  filter(Year + 0.01 * Month <= 1977.06 | Year + 0.01 * Month >= 1978.07) %>%
+  filter(Year + 0.01 * Month <= 1999.06 | Year + 0.01 * Month >= 2004.07) %>%
+  filter(Year + 0.01 * Month <= 2006.06 | Year + 0.01 * Month >= 2007.07) %>%
+  filter(Year + 0.01 * Month <= 2008.06 | Year + 0.01 * Month >= 2009.07) 
+us_100_1964_cut_numeric <- us_100_1964_cut[1:564,2:101]
+us_100_1964_cut_numeric[us_100_1964_cut_numeric== -99.99] <- 0
+
+us_ff3_1964_cut <- us_ff3_1964 %>% 
+  filter(Year + 0.01 * Month <= 1975.06 | Year + 0.01 * Month >= 1976.07) %>%
+  filter(Year + 0.01 * Month <= 1977.06 | Year + 0.01 * Month >= 1978.07) %>%
+  filter(Year + 0.01 * Month <= 1999.06 | Year + 0.01 * Month >= 2004.07) %>%
+  filter(Year + 0.01 * Month <= 2006.06 | Year + 0.01 * Month >= 2007.07) %>%
+  filter(Year + 0.01 * Month <= 2008.06 | Year + 0.01 * Month >= 2009.07) 
+us_ff3_1964_cut_data <- us_ff3_1964_cut[,c(8,3,4)]
 ```
 
 ```{r}
@@ -66,7 +100,7 @@ CCA <- function(large_panel_data, small_panel_data,k){
 
 Andreou <- function(large_panel_data, small_panel_data,k){
   large_pca_result <- prcomp(large_panel_data, center = TRUE, scale. = TRUE)
-  large_first_k_principal_components <- large_pca_result$x[, 1:6]
+  large_first_k_principal_components <- large_pca_result$x[,1:k ]
   small_pca_result <- prcomp(small_panel_data, center = TRUE, scale. = TRUE)
   small_first_k_principal_components <- small_pca_result$x[, ]
   cca_results_cca <- cancor(large_first_k_principal_components,
@@ -74,7 +108,7 @@ Andreou <- function(large_panel_data, small_panel_data,k){
   rho <- cca_results_cca$cor[1:k]
   cc_xvector <- large_first_k_principal_components %*% cca_results_cca$xcoef
   cc_yvector <- small_first_k_principal_components %*% cca_results_cca$ycoef
-  cc_xvector <- cc_yvector[,1:k]
+  cc_xvector <- cc_xvector[,1:k]
   cc_yvector <- cc_yvector[,1:k]
   CFs <- (cc_xvector+cc_yvector) %*% sqrtm(solve(2*(diag(rep(1,k))+diag(rho))))
   return(cor(cc_xvector,small_panel_data))
@@ -89,6 +123,7 @@ Results <- function(large_panel_data, small_panel_data,k){
 ```
 
 ```{r}
+library(expm)
 print("row 1")
 Results(us_100_2008_numeric,us_ff3_2008_data,2)$Andreou
 print("row 2")
@@ -97,7 +132,7 @@ print("row 3")
 Results(us_100_2008_numeric,us_ff5_mom_2008_data,3)$Andreou
 ```
 
-## Gorin
+## Correlations vs Z_rho
 
 ```{r}
 CCA_Gorin <- function(large_panel_data, small_panel_data,k){
@@ -113,11 +148,14 @@ CCA_Gorin <- function(large_panel_data, small_panel_data,k){
 ```
 
 ```{r}
-lambda_plus <- function(tau_k){
-  return(1 / tau_k)
+tau_k <- function(S,K){
+  return(S / K)
 }
-z_rho <- function(tau_k,rho){
-  return((1 + (tau_k - 1) * rho^2) / (tau_k))
+tau_m <- function(S,M){
+  return(S / M)
+}
+z_rho <- function(tau_k, tau_m, rho){
+  return((1 + (tau_k - 1) * rho^2) * (1 + (tau_m - 1) * rho^2)  / (rho^2 * tau_k * tau_m))
 }
 ```
 
@@ -126,16 +164,18 @@ library(ggplot2)
 first_n_years_correlations <- function(n){
   data1 <- us_100_1964_numeric[1:(12*n),]
   data2 <- us_ff3_1964_data[1:(12*n),]
-  return(CCA_Gorin(data1,data2,3))
+  return(CCA_Gorin(data1,data2,100))
 }
 Correlations <- c()
 for (i in 9:56){
   Correlations <- cbind(Correlations,first_n_years_correlations(i)^2)
 }
 Correlations <- as.data.frame(t(Correlations))
-rho <- first_n_years_correlations(56)[1]
-Lambda_plus <- lambda_plus(9:56*12/100)
-Z_rho <- z_rho(9:56*12/100,rho)
+rho <- (first_n_years_correlations(56)[1] * 56 * 12 /100 - 1) / (56 * 12 /100 - 1)
+S <- 9:56*12
+Tau_k <- tau_k(S, 100)
+Tau_m <- tau_m(S, 3)
+Z_rho <- z_rho(Tau_k, Tau_m, rho)
 
 ggplot(data = Correlations) +
   geom_line(aes(x = 9:56, y = V1, color = "lambda_1")) +
@@ -146,10 +186,367 @@ ggplot(data = Correlations) +
   scale_color_manual(values = c("lambda_1" = "red", "lambda_2" = "green", "lambda_3" = "blue")) + 
   labs(
     x = "First x years",
-    y = "Correlation",
+    y = "squared_correlation",
     title = "The three largest canonical correlations",
     subtitle = "Black dashed line comes from z_rho in Gorin's paper (lambda_1 should be close to z_rho)",
-    color = "Correlations",
+    color = "squared_correlation",
+    linetype = "" 
+  )
+```
+
+```{r}
+library(ggplot2)
+first_n_days_correlations <- function(n){
+  data1 <- us_100_1964_daily_numeric[1:n,]
+  data2 <- us_ff3_1964_daily_data[1:n,]
+  return(CCA_Gorin(data1,data2,3))
+}
+Correlations_daily <- c()
+for (i in 9:45){
+  Correlations_daily <- cbind(Correlations_daily,first_n_days_correlations(260 * i)^2)
+}
+Correlations_daily <- as.data.frame(t(Correlations_daily))
+rho_daily <- (first_n_days_correlations(11833)[1] * 11833 / 100 - 1) / (11833 / 100 - 1)
+
+S <- 9:45*260
+Tau_k <- tau_k(S, 100)
+Tau_m <- tau_m(S, 3)
+Z_rho_daily <- z_rho(Tau_k, Tau_m, rho_daily)
+
+ggplot(data = Correlations_daily) +
+  geom_line(aes(x = 9:45, y = V1, color = "lambda_1")) +
+  geom_line(aes(x = 9:45, y = V2, color = "lambda_2")) +
+  geom_line(aes(x = 9:45, y = V3, color = "lambda_3")) +
+  geom_line(aes(x = 9:45, y = Z_rho_daily, color = "black", linetype = "z_rho")) +
+  scale_linetype_manual(values = c("z_rho" = "dashed")) +
+  scale_color_manual(values = c("lambda_1" = "red", "lambda_2" = "green", "lambda_3" = "blue")) + 
+  labs(
+    x = "First x years",
+    y = "squared_correlation",
+    title = "The three largest canonical correlations",
+    subtitle = "Black dashed line comes from z_rho in Gorin's paper (lambda_1 should be close to z_rho)",
+    color = "squared_correlation",
+    linetype = "" 
+  )
+```
+
+```{r}
+library(ggplot2)
+first_n_years_correlations <- function(n){
+  data1 <- us_100_1964_cut_numeric[1:(12*n),]
+  data2 <- us_ff3_1964_cut_data[1:(12*n),]
+  return(CCA_Gorin(data1,data2,3))
+}
+
+first_n_days_correlations <- function(n){
+  data1 <- us_100_1964_daily_numeric[1:n,]
+  data2 <- us_ff3_1964_daily_data[1:n,]
+  return(CCA_Gorin(data1,data2,3))
+}
+
+Correlations <- c()
+for (i in 9:45){
+  Correlations <- cbind(Correlations,first_n_years_correlations(i)^2)
+}
+Correlations <- as.data.frame(t(Correlations))
+rho <- (first_n_years_correlations(45)[1] * 45 * 12 /100 - 1) / (45 * 12 /100 - 1)
+
+S <- 9:45*12
+Tau_k <- tau_k(S, 100)
+Tau_m <- tau_m(S, 3)
+Z_rho <- z_rho(Tau_k, Tau_m, rho_daily)
+
+Correlations_daily <- c()
+for (i in 9:45){
+  Correlations_daily <- cbind(Correlations_daily,first_n_days_correlations(260 * i)^2)
+}
+Correlations_daily <- as.data.frame(t(Correlations_daily))
+rho_daily <- (first_n_days_correlations(11833)[1] * 11833 / 100 - 1) / (11833 / 100 - 1)
+
+S <- 9:45*260
+Tau_k <- tau_k(S, 100)
+Tau_m <- tau_m(S, 3)
+Z_rho_daily <- z_rho(Tau_k, Tau_m, rho_daily)
+
+
+ggplot() +
+  geom_line(data = Correlations, aes(x = 9:45, y = V1, color = "lambda_1")) +
+  geom_line(aes(x = 9:45, y = Z_rho, color = "black", linetype = "z_rho")) +
+  geom_line(data = Correlations_daily, aes(x = 9:45, y = V1, color = "lambda_1_daily")) +
+  geom_line(aes(x = 9:45, y = Z_rho_daily, color = "grey", linetype = "z_rho_daily")) +
+  geom_line(data = Correlations_daily, aes(x = 9:45, y = V1, color = "lambda_1_daily")) +
+  scale_linetype_manual(values = c("z_rho" = "dashed", "z_rho_daily" = "dashed")) +
+  scale_color_manual(values = c("lambda_1" = "red", "lambda_1_daily" = "green")) + 
+  labs(
+    x = "First x years",
+    y = "squared_correlation",
+    title = "The largest canonical correlation",
+    subtitle = "Black dashed line comes from z_rho in Gorin's paper (lambda_1 should be close to z_rho)",
+    color = "squared_correlation",
+    linetype = "" 
+  )
+```
+
+## Biased Angle
+
+```{r}
+s_x <- function(tau_k, tau_m, rho){
+  return((1 - rho^2) * (tau_k - 1) * ((tau_m - 1) * rho^2 + 1) / (((tau_m - 1) * (tau_k - 1) * rho^2 -1) * ((tau_k - 1) * rho^2 + 1)))
+}
+```
+
+```{r}
+library(ggplot2)
+first_n_years_correlations <- function(n){
+  data1 <- us_100_1964_cut_numeric[1:(12*n),]
+  data2 <- us_ff3_1964_cut_data[1:(12*n),]
+  return(CCA_Gorin(data1,data2,3))
+}
+
+first_n_days_correlations <- function(n){
+  data1 <- us_100_1964_daily_numeric[1:n,]
+  data2 <- us_ff3_1964_daily_data[1:n,]
+  return(CCA_Gorin(data1,data2,3))
+}
+
+
+rho <- (first_n_years_correlations(45)[1] * 45 * 12 /100 - 1) / (45 * 12 /100 - 1)
+
+S <- 9:45*12
+Tau_k <- tau_k(S, 100)
+Tau_m <- tau_m(S, 3)
+S_x <- s_x(Tau_k, Tau_m, rho)
+
+
+rho_daily <- (first_n_days_correlations(11833)[1] * 11833 / 100 - 1) / (11833 / 100 - 1)
+
+S <- 9:45*260
+Tau_k <- tau_k(S, 100)
+Tau_m <- tau_m(S, 3)
+S_x_daily <- s_x(Tau_k, Tau_m, rho_daily)
+
+ggplot() +
+  geom_line(aes(x = 9:45, y = S_x, color = "s_x")) +
+  geom_line(aes(x = 9:45, y = S_x_daily, color = "s_x_daily")) +
+  scale_color_manual(values = c("s_x" = "red", "s_x_daily" = "green")) + 
+  labs(
+    x = "First x years",
+    y = "s_x",
+    title = "Square sine value of the biased angle",
+    color = "squared_sin",
+    linetype = "" 
+  )
+```
+
+## Simulation
+
+### $k^c = 3, k_1^s = 1, k_2^s = 1, \rho^2 = 0.98$
+
+```{r}
+Simulated_data <- function(k_c,k_1s,k_2s,m,k,s){
+  Lambda_1c <- matrix(rexp(m*k_c, rate=.2), nrow = k_c)
+  Lambda_2c <- matrix(rexp(k*k_c, rate=.5), nrow = k_c)
+  Common_factors <- matrix(rnorm(s*k_c,3), ncol=k_c)
+  f_1s <- matrix(rnorm(s*k_1s,1), ncol=k_1s)
+  f_2s <- matrix(rnorm(s*k_2s,1), ncol=k_2s)
+  Lambda_1s <- matrix(rexp(m*k_1s, rate=.1), nrow = k_1s)
+  Lambda_2s <- matrix(rexp(k*k_2s, rate=.3), nrow = k_2s)
+  epsilon_1 <- matrix(rnorm(s*m,10), ncol=m)
+  epsilon_2 <- matrix(rnorm(s*k,10), ncol=k)
+  data_1 <- Common_factors %*% Lambda_1c + f_1s %*% Lambda_1s + epsilon_1
+  data_2 <- Common_factors %*% Lambda_2c + f_2s %*% Lambda_2s + epsilon_2
+  data_list <- list("data_1" = data_1, "data_2" = data_2, "common_factors" = Common_factors)
+  return(data_list)
+}
+```
+
+```{r}
+simulated_data <- Simulated_data(3,1,1,100,3,700)
+library(ggplot2)
+first_n_years_correlations <- function(n){
+  data1 <- simulated_data$data_1[1:(12*n),]
+  data2 <- simulated_data$data_2[1:(12*n),]
+  return(CCA_Gorin(data1,data2,3))
+}
+Correlations <- c()
+for (i in 9:56){
+  Correlations <- cbind(Correlations,first_n_years_correlations(i)^2)
+}
+Correlations <- as.data.frame(t(Correlations))
+rho <- (first_n_years_correlations(56)[1] * 56 * 12 /100 - 1) / (56 * 12 /100 - 1)
+S <- 9:56*12
+Tau_k <- tau_k(S, 100)
+Tau_m <- tau_m(S, 3)
+Z_rho <- z_rho(Tau_k, Tau_m, rho)
+
+ggplot(data = Correlations) +
+  geom_line(aes(x = 9:56, y = V1, color = "lambda_1")) +
+  geom_line(aes(x = 9:56, y = V2, color = "lambda_2")) +
+  geom_line(aes(x = 9:56, y = V3, color = "lambda_3")) +
+  geom_line(aes(x = 9:56, y = Z_rho, color = "black", linetype = "z_rho")) +
+  scale_linetype_manual(values = c("z_rho" = "dashed")) +
+  scale_color_manual(values = c("lambda_1" = "red", "lambda_2" = "green", "lambda_3" = "blue")) + 
+  labs(
+    x = "First x years",
+    y = "squared_correlation",
+    title = "The three largest canonical correlations",
+    subtitle = "Black dashed line comes from z_rho in Gorin's paper (lambda_1 should be close to z_rho)",
+    color = "squared_correlation",
+    linetype = "" 
+  )
+```
+
+```{r}
+library(ggplot2)
+simulated_data <- Simulated_data(3,1,1,100,3,30000)
+first_n_years_correlations <- function(n){
+  data1 <- simulated_data$data_1[1:(12*n),]
+  data2 <- simulated_data$data_2[1:(12*n),]
+  return(CCA_Gorin(data1,data2,3))
+}
+
+first_n_days_correlations <- function(n){
+  data1 <- simulated_data$data_1[10000 + 1:n,]
+  data2 <- simulated_data$data_2[10000 + 1:n,]
+  return(CCA_Gorin(data1,data2,3))
+}
+
+Correlations <- c()
+for (i in 9:45){
+  Correlations <- cbind(Correlations,first_n_years_correlations(i)^2)
+}
+Correlations <- as.data.frame(t(Correlations))
+rho <- first_n_years_correlations(2000)[1]
+
+S <- 9:45*12
+Tau_k <- tau_k(S, 100)
+Tau_m <- tau_m(S, 3)
+Z_rho <- z_rho(Tau_k, Tau_m, rho*0.9999)
+
+
+
+Correlations_daily <- c()
+for (i in 9:45){
+  Correlations_daily <- cbind(Correlations_daily,first_n_days_correlations(260 * i)^2)
+}
+Correlations_daily <- as.data.frame(t(Correlations_daily))
+rho_daily <- (first_n_days_correlations(11833)[1] * 11833 / 100 - 1) / (11833 / 100 - 1)
+
+S <- 9:45*260
+Tau_k <- tau_k(S, 100)
+Tau_m <- tau_m(S, 3)
+Z_rho_daily <- z_rho(Tau_k, Tau_m, rho_daily)
+
+
+ggplot() +
+  geom_line(data = Correlations, aes(x = 9:45, y = V1, color = "lambda_1")) +
+  geom_line(aes(x = 9:45, y = Z_rho, color = "black", linetype = "z_rho")) +
+  geom_line(data = Correlations_daily, aes(x = 9:45, y = V1, color = "lambda_1_daily")) +
+  geom_line(aes(x = 9:45, y = Z_rho_daily, color = "grey", linetype = "z_rho_daily")) +
+  geom_line(data = Correlations_daily, aes(x = 9:45, y = V1, color = "lambda_1_daily")) +
+  scale_linetype_manual(values = c("z_rho" = "dashed", "z_rho_daily" = "dashed")) +
+  scale_color_manual(values = c("lambda_1" = "red", "lambda_1_daily" = "green")) + 
+  labs(
+    x = "First x years",
+    y = "squared_correlation",
+    title = "The largest canonical correlation",
+    subtitle = "Black dashed line comes from z_rho in Gorin's paper (lambda_1 should be close to z_rho)",
+    color = "squared_correlation",
+    linetype = "" 
+  )
+```
+
+### Biased angle
+
+```{r}
+CCA_Gorin_angle <- function(large_panel_data, small_panel_data,common_factors,k){
+  large_pca_result <- prcomp(large_panel_data, center = TRUE, scale. = TRUE)
+  large_first_k_principal_components <- large_pca_result$x[, ]
+  small_pca_result <- prcomp(small_panel_data, center = TRUE, scale. = TRUE)
+  small_first_k_principal_components <- small_pca_result$x[, ]
+  cca_results_cca <- cancor(large_first_k_principal_components,
+                            small_first_k_principal_components)
+  cc_xvector <- large_first_k_principal_components %*% cca_results_cca$xcoef
+  cc_xvector <- cc_xvector[,1:k]
+  return(cor(cc_xvector,common_factors)[1,1])
+}
+```
+
+```{r}
+simulated_data <- Simulated_data(3,1,1,100,3,30000)
+first_n_years_correlations <- function(n){
+  data1 <- simulated_data$data_1[1:(12*n),]
+  data2 <- simulated_data$data_2[1:(12*n),]
+  CFs <- simulated_data$common_factors[1:(12*n),]
+  return(CCA_Gorin_angle(data1,data2,CFs,3))
+}
+
+first_n_days_correlations <- function(n){
+  data1 <- simulated_data$data_1[10000 + 1:n,]
+  data2 <- simulated_data$data_2[10000 + 1:n,]
+    CFs <- simulated_data$common_factors[10000 + 1:n,]
+  return(CCA_Gorin_angle(data1,data2,CFs,3))
+}
+```
+
+```{r}
+library(ggplot2)
+simulated_data <- Simulated_data(3,1,1,100,3,30000)
+first_n_years_correlations <- function(n){
+  data1 <- simulated_data$data_1[1:(12*n),]
+  data2 <- simulated_data$data_2[1:(12*n),]
+  CFs <- simulated_data$common_factors[1:(12*n),]
+  return(CCA_Gorin_angle(data1,data2,CFs,3))
+}
+
+first_n_days_correlations <- function(n){
+  data1 <- simulated_data$data_1[10000 + 1:n,]
+  data2 <- simulated_data$data_2[10000 + 1:n,]
+    CFs <- simulated_data$common_factors[10000 + 1:n,]
+  return(CCA_Gorin_angle(data1,data2,CFs,3))
+}
+
+Correlations <- c()
+for (i in 9:45){
+  Correlations <- cbind(Correlations,first_n_years_correlations(i)^2)
+}
+Correlations <- as.data.frame(t(Correlations))
+rho <- first_n_years_correlations(2000)[1]
+
+S <- 9:45*12
+Tau_k <- tau_k(S, 100)
+Tau_m <- tau_m(S, 3)
+S_x <- s_x(Tau_k, Tau_m, rho*0.9999)
+
+
+
+Correlations_daily <- c()
+for (i in 9:45){
+  Correlations_daily <- cbind(Correlations_daily,first_n_days_correlations(260 * i)^2)
+}
+Correlations_daily <- as.data.frame(t(Correlations_daily))
+rho_daily <- (first_n_days_correlations(11833)[1] * 11833 / 100 - 1) / (11833 / 100 - 1)
+
+S <- 9:45*260
+Tau_k <- tau_k(S, 100)
+Tau_m <- tau_m(S, 3)
+S_x_daily <- s_x(Tau_k, Tau_m, rho_daily)
+
+
+ggplot() +
+  geom_line(data = Correlations, aes(x = 9:45, y = V1, color = "lambda_1")) +
+  geom_line(aes(x = 9:45, y = S_x, color = "black", linetype = "s_x")) +
+  geom_line(data = Correlations_daily, aes(x = 9:45, y = V1, color = "lambda_1_daily")) +
+  geom_line(aes(x = 9:45, y = S_x_daily, color = "grey", linetype = "s_x_daily")) +
+  geom_line(data = Correlations_daily, aes(x = 9:45, y = V1, color = "lambda_1_daily")) +
+  scale_linetype_manual(values = c("s_x" = "dashed", "s_x_daily" = "dashed")) +
+  scale_color_manual(values = c("lambda_1" = "red", "lambda_1_daily" = "green")) + 
+  labs(
+    x = "First x years",
+    y = "squared_correlation",
+    title = "The largest canonical correlation",
+    subtitle = "Black dashed line comes from z_rho in Gorin's paper (lambda_1 should be close to z_rho)",
+    color = "squared_correlation",
     linetype = "" 
   )
 ```

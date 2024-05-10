@@ -101,3 +101,12 @@ Important note: the below files were too big to be stored as a single dataframe,
 | Fama/French Asia Pacific ex Japan 5 Factors | asia_ff5_1991 | 5 Asia Pacific ex Japan FF | Small | 1991 - 2019 | Kenneth French |
 | Fama/French North American 5 Factors | na_ff5_2008 | 5 North American FF | Small | 2008 - 2019 | Kenneth French |
 | Fama/French North American 5 Factors | na_ff5_1991 | 5 North American FF | Small | 1991 - 2019 | Kenneth French |
+
+
+## Additional Datasets
+| Official Dataset Name(s) | Name in Files | Abbreviation in Paper | Large or Small Panel | Years | Source |
+| ------------------------ | ------------- | --------------------- | -------------------- | ----- | ------ |
+| 100 Portfolios Formed on Size and Operating Profitability (10 x 10) | us_100_size_op_2008 | N/A | N/A | 2008 - 2019 | Kenneth French |
+| 100 Portfolios Formed on Size and Operating Profitability (10 x 10) | us_100_size_op_1964 | N/A | N/A | 21964 - 2019 | Kenneth French |
+| 100 Portfolios Formed on Size and Investment (10 x 10) | us_100_size_inv_2008 | N/A | N/A | 2008 - 2019 | Kenneth French |
+| 100 Portfolios Formed on Size and Investment (10 x 10) | us_100_size_inv_1964 | N/A | N/A | 1964 - 2019 | Kenneth French |
